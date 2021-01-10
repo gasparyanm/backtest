@@ -24,7 +24,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $processNums = env('STREAM_NUMBER');
+        $processNums = env('STREAM_NUMBER',1);
 
         for ($process = 0; $process < $processNums; $process++) {
             $schedule->command('process:flagmer')

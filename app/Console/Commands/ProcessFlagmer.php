@@ -2,13 +2,23 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Flagmer\Integrations\Amocrm\sendLeadDto;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use \Flagmer\Billing\Account as Account;
-use \Flagmer\Integrations\AmoCrm as AmoCrm;
+use App\Services\Flagmer\Billing\Account;
+use App\Services\Flagmer\Integrations\AmoCrm;
 
-class processFlagmer extends Command
+class ProcessFlagmer extends Command
 {
+    const TASK_CATEGORY_ACCOUNT = 'account';
+    const TASK_CATEGORY_AMOCRM = 'amocrm';
+
+    const SERVICE_ACCOUNT_ACTION = 'processPaymentAction';
+    const SERVICE_AMOCRM_ACTION = 'sendLeadAction';
+
+    private $service = null;
+    private $serviceMethod = null;
+    private $serviceAction = null;
     /**
      * The name and signature of the console command.
      *
@@ -42,28 +52,39 @@ class processFlagmer extends Command
     {
         $task = $this->getFreeTask();
 
-        if (!$task) {
-            return false;
-        }
+        if (empty($task))
+            exit('free task not found');
 
-        $action = $task->task.'Action';
         $data = json_decode($task->data, true);
 
-        $namespace = '\\Flagmer\\' . ($task->category === 'account' ? 'Billing\\Account' : 'Integrations\\AmoCrm');
-        $paramsObjPath = $namespace. '\\' . $task->task.'Dto';
-        $paramsObj = new $paramsObjPath;
+        if( $task->category === self::TASK_CATEGORY_ACCOUNT ){
+            $this->serviceMethod = new Account();
+            $this->serviceAction = self::SERVICE_ACCOUNT_ACTION;
+            $this->service = new Account\processPaymentDto();
+            $this->service->account_id = $data['account_id'];
+            $this->service->amount = $data['amount'];
 
-        foreach ($data as $item => $key) {
-            $paramsObj->{$item} = $key;
+        }
+        if( $task->category === self::TASK_CATEGORY_AMOCRM ){
+            $this->serviceMethod = new AmoCrm();
+            $this->serviceAction = self::SERVICE_AMOCRM_ACTION;
+            $this->service = new Amocrm\sendLeadDto();
+            $this->service->lead_id = $data['lead_id'];
         }
 
+        if( empty($this->serviceMethod) )
+            exit('service not found');
+
         $this->pushTaskToQueue($task);
-        (new $namespace())->{$action}($paramsObj);
+        $this->serviceMethod->{$this->serviceAction}($this->service);
         $this->updateTaskStatus($task);
         $this->removeTaskFromQueue($task);
         dump(DB::table('tasks')->where('id', $task->id)->first());
     }
 
+    /**
+     * @return \Illuminate\Database\Query\Builder|object|null
+     */
     private function getFreeTask()
     {
         return DB::table('tasks')
@@ -72,6 +93,10 @@ class processFlagmer extends Command
             ->first();
     }
 
+    /**
+     * @param $task
+     * @return void
+     */
     private function pushTaskToQueue($task)
     {
         DB::table('tasks')
@@ -79,6 +104,10 @@ class processFlagmer extends Command
             ->update(['onQueue' => '1']);
     }
 
+    /**
+     * @param $task
+     * @return void
+     */
     private function updateTaskStatus($task)
     {
         DB::table('tasks')
@@ -86,6 +115,10 @@ class processFlagmer extends Command
             ->update(['status' => '1']);
     }
 
+    /**
+     * @param $task
+     * @return void
+     */
     private function removeTaskFromQueue($task)
     {
         DB::table('tasks')

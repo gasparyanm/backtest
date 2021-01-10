@@ -1,10 +1,10 @@
 <?php
 
 
-namespace Flagmer\Billing;
+namespace App\Services\Flagmer\Billing;
 
 
-use Flagmer\Billing\Account\processPaymentDto;
+use App\Services\Flagmer\Billing\Account\processPaymentDto;
 
 class Account
 {

@@ -1,11 +1,11 @@
 <?php
 
 
-namespace Flagmer\Integrations\Amocrm;
+namespace App\Services\Flagmer\Integrations\Amocrm;
 
 
 class sendLeadDto
 {
     // if don't use constructor it should have default value
-    public ?int $lead_id = null;
+    public $lead_id;
 }

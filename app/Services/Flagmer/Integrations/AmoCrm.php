@@ -1,10 +1,10 @@
 <?php
 
 
-namespace Flagmer\Integrations;
+namespace App\Services\Flagmer\Integrations;
 
 
-use Flagmer\Integrations\Amocrm\sendLeadDto;
+use App\Services\Flagmer\Integrations\Amocrm\sendLeadDto;
 
 class AmoCrm
 {
